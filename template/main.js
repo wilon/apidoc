@@ -11,7 +11,6 @@ require.config({
         prismjs: './vendor/prism',
         semver: './vendor/semver.min',
         utilsSampleRequest: './utils/send_sample_request',
-        webfontloader: './vendor/webfontloader',
         list: './vendor/list.min',
         apiData: './api_data',
         apiProject: './api_project',
@@ -48,26 +47,13 @@ require([
     'prismjs',
     'utilsSampleRequest',
     'semver',
-    'webfontloader',
     'bootstrap',
     'pathToRegexp',
     'list'
-], function($, _, locale, Handlebars, apiProject, apiData, Prism, sampleRequest, semver, WebFont) {
+], function($, _, locale, Handlebars, apiProject, apiData, Prism, sampleRequest, semver) {
 
-    // Load google web fonts.
-    WebFont.load({
-        active: function() {
-            // Only init after fonts are loaded.
-            init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleRequest, semver);
-        },
-        inactive: function() {
-            // Run init, even if loading fonts fails
-            init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleRequest, semver);
-        },
-        google: {
-            families: ['Source Code Pro', 'Source Sans Pro:n4,n6,n7']
-        }
-    });
+    init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleRequest, semver);
+
 });
 
 function init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleRequest, semver) {
@@ -89,6 +75,13 @@ function init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleReques
     // Default host url used if no sampleUrl is present in config
     //
     var baseURL = window.location.origin;
+
+    /**
+     * Replace dom attribute special character to _
+     *
+     * Reference: https://github.com/jquery/jquery/blob/master/src/selector/escapeSelector.js#L5
+     */
+    var rcssescape = /([\0-\x1f\x7f]|^-?\d)|^-$|[^\x80-\uFFFF\w-]/g;
 
     //
     // apiProject defaults
@@ -130,36 +123,36 @@ function init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleReques
     //
     // sort api within a group by title ASC and custom order
     //
-    var newList = [];
-    var umlauts = { 'ä': 'ae', 'ü': 'ue', 'ö': 'oe', 'ß': 'ss' }; // TODO: remove in version 1.0
-    $.each (apiByGroupAndName, function(index, groupEntries) {
-        // get titles from the first entry of group[].name[] (name has versioning)
-        var titles = [];
-        $.each (groupEntries, function(titleName, entries) {
-            var title = entries[0].title;
-            if(title !== undefined) {
-                title.toLowerCase().replace(/[äöüß]/g, function($0) { return umlauts[$0]; });
-                titles.push(title + '#~#' + titleName); // '#~#' keep reference to titleName after sorting
-            }
-        });
-        // sort by name ASC
-        titles.sort();
+    // var newList = [];
+    // var umlauts = { 'ä': 'ae', 'ü': 'ue', 'ö': 'oe', 'ß': 'ss' }; // TODO: remove in version 1.0
+    // $.each (apiByGroupAndName, function(index, groupEntries) {
+    //     // get titles from the first entry of group[].name[] (name has versioning)
+    //     var titles = [];
+    //     $.each (groupEntries, function(titleName, entries) {
+    //         var title = entries[0].title;
+    //         if(title !== undefined) {
+    //             title.toLowerCase().replace(/[äöüß]/g, function($0) { return umlauts[$0]; });
+    //             titles.push(title + '#~#' + titleName); // '#~#' keep reference to titleName after sorting
+    //         }
+    //     });
+    //     // sort by name ASC
+    //     titles.sort();
 
-        // custom order
-        if (apiProject.order)
-            titles = sortByOrder(titles, apiProject.order, '#~#');
+    //     // custom order
+    //     if (apiProject.order)
+    //         titles = sortByOrder(titles, apiProject.order, '#~#');
 
-        // add single elements to the new list
-        titles.forEach(function(name) {
-            var values = name.split('#~#');
-            var key = values[1];
-            groupEntries[key].forEach(function(entry) {
-                newList.push(entry);
-            });
-        });
-    });
-    // api overwrite with ordered list
-    api = newList;
+    //     // add single elements to the new list
+    //     titles.forEach(function(name) {
+    //         var values = name.split('#~#');
+    //         var key = values[1];
+    //         groupEntries[key].forEach(function(entry) {
+    //             newList.push(entry);
+    //         });
+    //     });
+    // });
+    // // api overwrite with ordered list
+    // api = newList;
 
     //
     // Group- and Versionlists
@@ -195,7 +188,7 @@ function init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleReques
     apiGroups.forEach(function(group) {
         // Mainmenu entry
         nav.push({
-            group: group,
+            group: group.replace(rcssescape, '_'),
             isHeader: true,
             title: apiGroupTitles[group]
         });
@@ -207,8 +200,8 @@ function init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleReques
                 if (oldName !== entry.name) {
                     nav.push({
                         title: entry.title,
-                        group: group,
-                        name: entry.name,
+                        group: group.replace(rcssescape, '_'),
+                        name: entry.name.replace(rcssescape, '_'),
                         type: entry.type,
                         version: entry.version,
                         url: entry.url
@@ -216,9 +209,9 @@ function init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleReques
                 } else {
                     nav.push({
                         title: entry.title,
-                        group: group,
+                        group: group.replace(rcssescape, '_'),
                         hidden: true,
-                        name: entry.name,
+                        name: entry.name.replace(rcssescape, '_'),
                         type: entry.type,
                         version: entry.version,
                         url: entry.url
@@ -333,7 +326,9 @@ function init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleReques
     // Render Sections and Articles
     //
     var articleVersions = {};
-    var content = '';
+    var before = [];
+    var after = [];
+    var isBefore = true;
     apiGroups.forEach(function(groupEntry) {
         var articles = [];
         var oldName = '';
@@ -343,6 +338,8 @@ function init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleReques
         articleVersions[groupEntry] = {};
 
         // render all articles of a group
+        var show = false;
+        var id = decodeURI(window.location.hash);
         api.forEach(function(entry) {
             if(groupEntry === entry.group) {
                 if (oldName !== entry.name) {
@@ -391,238 +388,45 @@ function init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleReques
                 if (entry.groupDescription)
                     description = entry.groupDescription;
 
-                articles.push({
+                fields.article.group = fields.article.group.replace(rcssescape, '_');
+                fields.article.name = fields.article.name.replace(rcssescape, '_');
+                var a = {
                     article: templateArticle(fields),
-                    group: entry.group,
-                    name: entry.name,
+                    group: entry.group.replace(rcssescape, '_'),
+                    name: entry.name.replace(rcssescape, '_'),
                     aloneDisplay: apiProject.template.aloneDisplay
-                });
+                };
+                if (id == `#api-${a.group}-${a.name}`) {
+                    show = true;
+                }
+                articles.push(a);
                 oldName = entry.name;
             }
         });
 
         // render Section with Articles
         var fields = {
-            group: groupEntry,
+            group: groupEntry.replace(rcssescape, '_'),
             title: title,
             description: description,
             articles: articles,
             aloneDisplay: apiProject.template.aloneDisplay
         };
-        content += templateSections(fields);
-    });
-    $('#sections').append( content );
-
-    // Bootstrap Scrollspy
-    $(this).scrollspy({ target: '#scrollingNav' });
-
-    // Content-Scroll on Navigation click.
-    $('.sidenav').find('a').on('click', function(e) {
-        e.preventDefault();
-        var id = $(this).attr('href');
-        if ($(id).length > 0)
-            $('html,body').animate({ scrollTop: parseInt($(id).offset().top) }, 400);
-        window.location.hash = $(this).attr('href');
-    });
-
-    /**
-     * Check if Parameter (sub) List has a type Field.
-     * Example: @apiSuccess          varname1 No type.
-     *          @apiSuccess {String} varname2 With type.
-     *
-     * @param {Object} fields
-     */
-    function _hasTypeInFields(fields) {
-        var result = false;
-        $.each(fields, function(name) {
-            result = result || _.some(fields[name], function(item) { return item.type; });
-        });
-        return result;
-    }
-
-    /**
-     * On Template changes, recall plugins.
-     */
-    function initDynamic() {
-        // Bootstrap popover
-        $('button[data-toggle="popover"]').popover().click(function(e) {
-            e.preventDefault();
-        });
-
-        var version = $('#version strong').html();
-        $('#sidenav li').removeClass('is-new');
-        if (apiProject.template.withCompare) {
-            $('#sidenav li[data-version=\'' + version + '\']').each(function(){
-                var group = $(this).data('group');
-                var name = $(this).data('name');
-                var length = $('#sidenav li[data-group=\'' + group + '\'][data-name=\'' + name + '\']').length;
-                var index  = $('#sidenav li[data-group=\'' + group + '\'][data-name=\'' + name + '\']').index($(this));
-                if (length === 1 || index === (length - 1))
-                    $(this).addClass('is-new');
-            });
+        if (id == `#api-${fields.group}`) {
+            show = true;
         }
-
-        // tabs
-        $('.nav-tabs-examples a').click(function (e) {
-            e.preventDefault();
-            $(this).tab('show');
-        });
-        $('.nav-tabs-examples').find('a:first').tab('show');
-
-        // sample header-content-type switch
-        $('.sample-header-content-type-switch').change(function () {
-            var paramName = '.' + $(this).attr('name') + '-fields';
-            var bodyName = '.' + $(this).attr('name') + '-body';
-            var selectName = 'select[name=' + $(this).attr('name') + ']';
-            if ($(this).val() == 'body-json') {
-                $(selectName).val('undefined');
-                $(this).val('body-json');
-                $(paramName).removeClass('hide');
-                $(this).parent().nextAll(paramName).first().addClass('hide');
-                $(bodyName).addClass('hide');
-                $(this).parent().nextAll(bodyName).first().removeClass('hide');
-            } else if ($(this).val() == "body-form-data") {
-                $(selectName).val('undefined');
-                $(this).val('body-form-data');
-                $(bodyName).addClass('hide');
-                $(paramName).removeClass('hide');
+        if (show) {
+            $('#sections').append(templateSections(fields));
+            isBefore = false
+        } else {
+            if (isBefore) {
+                before.push(fields)
             } else {
-                $(this).parent().nextAll(paramName).first().removeClass('hide')
-                $(this).parent().nextAll(bodyName).first().addClass('hide');
+                after.push(fields)
             }
-            $(this).prev('.sample-request-switch').prop('checked', true);
-        });
-
-        // sample request switch
-        $('.sample-request-switch').click(function (e) {
-            var paramName = '.' + $(this).attr('name') + '-fields';
-            var bodyName = '.' + $(this).attr('name') + '-body';
-            var select = $(this).next('.' + $(this).attr('name') + '-select').val();
-            if($(this).prop("checked")){
-                if (select == 'body-json'){
-                    $(this).parent().nextAll(bodyName).first().removeClass('hide');
-                }else {
-                    $(this).parent().nextAll(paramName).first().removeClass('hide');
-                }
-            }else {
-                if (select == 'body-json'){
-                    $(this).parent().nextAll(bodyName).first().addClass('hide');
-                }else {
-                    $(this).parent().nextAll(paramName).first().addClass('hide');
-                }
-            }
-        });
-
-        if (apiProject.template.aloneDisplay){
-            //show group
-            $('.show-group').click(function () {
-                var apiGroup = '.' + $(this).attr('data-group') + '-group';
-                var apiGroupArticle = '.' + $(this).attr('data-group') + '-article';
-                $(".show-api-group").addClass('hide');
-                $(apiGroup).removeClass('hide');
-                $(".show-api-article").addClass('hide');
-                $(apiGroupArticle).removeClass('hide');
-            });
-
-            //show api
-            $('.show-api').click(function () {
-                var apiName = '.' + $(this).attr('data-name') + '-article';
-                var apiGroup = '.' + $(this).attr('data-group') + '-group';
-                $(".show-api-group").addClass('hide');
-                $(apiGroup).removeClass('hide');
-                $(".show-api-article").addClass('hide');
-                $(apiName).removeClass('hide');
-            });
         }
-
-        // call scrollspy refresh method
-        $(window).scrollspy('refresh');
-
-        // init modules
-        sampleRequest.initDynamic();
-        Prism.highlightAll()
-    }
-    initDynamic();
-
-    if (apiProject.template.aloneDisplay) {
-        var hashVal = window.location.hash;
-        if (hashVal != null && hashVal.length !== 0) {
-            $("." + hashVal.slice(1) + "-init").click();
-        }
-    }
-
-    //
-    // HTML-Template specific jQuery-Functions
-    //
-    // Change Main Version
-    function setMainVersion(selectedVersion) {
-        if (typeof(selectedVersion) === 'undefined') {
-            selectedVersion = $('#version strong').html();
-        }
-        else {
-            $('#version strong').html(selectedVersion);
-        }
-
-        // hide all
-        $('article').addClass('hide');
-        $('#sidenav li:not(.nav-fixed)').addClass('hide');
-
-        // show 1st equal or lower Version of each entry
-        $('article[data-version]').each(function(index) {
-            var group = $(this).data('group');
-            var name = $(this).data('name');
-            var version = $(this).data('version');
-
-            if (semver.lte(version, selectedVersion)) {
-                if ($('article[data-group=\'' + group + '\'][data-name=\'' + name + '\']:visible').length === 0) {
-                    // enable Article
-                    $('article[data-group=\'' + group + '\'][data-name=\'' + name + '\'][data-version=\'' + version + '\']').removeClass('hide');
-                    // enable Navigation
-                    $('#sidenav li[data-group=\'' + group + '\'][data-name=\'' + name + '\'][data-version=\'' + version + '\']').removeClass('hide');
-                    $('#sidenav li.nav-header[data-group=\'' + group + '\']').removeClass('hide');
-                }
-            }
-        });
-
-        // show 1st equal or lower Version of each entry
-        $('article[data-version]').each(function(index) {
-            var group = $(this).data('group');
-            $('section#api-' + group).removeClass('hide');
-            if ($('section#api-' + group + ' article:visible').length === 0) {
-                $('section#api-' + group).addClass('hide');
-            } else {
-                $('section#api-' + group).removeClass('hide');
-            }
-        });
-
-        initDynamic();
-        return;
-    }
-    setMainVersion();
-
-    $('#versions li.version a').on('click', function(e) {
-        e.preventDefault();
-
-        setMainVersion($(this).html());
     });
-
-    // compare all article with their predecessor
-    $('#compareAllWithPredecessor').on('click', changeAllVersionCompareTo);
-
-    // change version of an article
-    $('article .versions li.version a').on('click', changeVersionCompareTo);
-
-    // compare url-parameter
-    $.urlParam = function(name) {
-        var results = new RegExp('[\\?&amp;]' + name + '=([^&amp;#]*)').exec(window.location.href);
-        return (results && results[1]) ? results[1] : null;
-    };
-
-    if ($.urlParam('compare')) {
-        // URL Paramter ?compare=1 is set
-        $('#compareAllWithPredecessor').trigger('click');
-    }
-
+    Prism.highlightAll();
     // Quick jump on page load to hash position.
     // Should happen after setting the main version
     // and after triggering the click on the compare button,
@@ -630,40 +434,36 @@ function init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleReques
     // and would make it jump to the wrong position or not jump at all.
     if (window.location.hash) {
         var id = decodeURI(window.location.hash);
-        if ($(id).length > 0)
+        if ($(id).length > 0) {
             $('html,body').animate({ scrollTop: parseInt($(id).offset().top) }, 0);
+        }
     }
-
-    /**
-     * Initialize search
-     */
-    var options = {
-      valueNames: [ 'nav-list-item','nav-list-url-item']
-    };
-    var endpointsList = new List('scrollingNav', options);
-
-    /**
-     * Set initial focus to search input
-     */
-    $('#scrollingNav .sidenav-search input.search').focus();
-
-    /**
-     * Detect ESC key to reset search
-     */
-    $(document).keyup(function(e) {
-      if (e.keyCode === 27) $('span.search-reset').click();
-    });
-
-    /**
-     * Search reset
-     */
-    $('span.search-reset').on('click', function() {
-      $('#scrollingNav .sidenav-search input.search')
-        .val("")
-        .focus()
-      ;
-      endpointsList.search();
-    });
+    setTimeout(() => {
+        before.reverse().forEach(element => {
+            $('#sections').prepend(templateSections(element));
+        });
+        after.forEach(element => {
+            $('#sections').append(templateSections(element));
+        });
+        // Bootstrap Scrollspy
+        $(this).scrollspy({ target: '#scrollingNav' });    // -1s
+        $("#scrollingNav").on('activate.bs.scrollspy', function (event) {
+            var target = $(event.target);
+            history.pushState({}, "apidoc", target.find('a').attr('href'));
+            var screenHight = document.documentElement.clientHeight - 52;
+            var activeTop = target.offset().top - $(document).scrollTop() - 52;
+            var needScroll = activeTop < 15 || activeTop + 35 > screenHight;
+            // console.log(`screenHight:${screenHight}, activeTop:${activeTop}, scrollTop:${scrollTop}, needScroll:${needScroll}`)
+            if (needScroll) {
+                var scrollTop = $("#scrollingNav .sidenav").scrollTop();
+                // + 是往下滚，- 是往上
+                var distTop = scrollTop + activeTop - screenHight/2;
+                // console.log(`该滚动：${distTop}`)
+                // $("#scrollingNav .sidenav").scrollTop(distTop)
+                $("#scrollingNav .sidenav").stop().animate({scrollTop: distTop});
+            }
+        });
+    }, 0);
 
     /**
      * Change version of an article to compare it to an other version.
@@ -919,5 +719,246 @@ function init($, _, locale, Handlebars, apiProject, apiData, Prism, sampleReques
         });
         return results;
     }
-    Prism.highlightAll()
+    /**
+     * Check if Parameter (sub) List has a type Field.
+     * Example: @apiSuccess          varname1 No type.
+     *          @apiSuccess {String} varname2 With type.
+     *
+     * @param {Object} fields
+     */
+    function _hasTypeInFields(fields) {
+        var result = false;
+        $.each(fields, function(name) {
+            result = result || _.some(fields[name], function(item) { return item.type; });
+        });
+        return result;
+    }
+
+    /**
+     * On Template changes, recall plugins.
+     */
+    function initDynamic() {
+        // Bootstrap popover
+        $('button[data-toggle="popover"]').popover().click(function(e) {
+            e.preventDefault();
+        });
+
+        var version = $('#version strong').html();
+        $('#sidenav li').removeClass('is-new');
+        if (apiProject.template.withCompare) {
+            $('#sidenav li[data-version=\'' + version + '\']').each(function(){
+                var group = $(this).data('group');
+                var name = $(this).data('name');
+                var length = $('#sidenav li[data-group=\'' + group + '\'][data-name=\'' + name + '\']').length;
+                var index  = $('#sidenav li[data-group=\'' + group + '\'][data-name=\'' + name + '\']').index($(this));
+                if (length === 1 || index === (length - 1))
+                    $(this).addClass('is-new');
+            });
+        }
+
+        // tabs
+        $('.nav-tabs-examples a').click(function (e) {
+            e.preventDefault();
+            $(this).tab('show');
+        });
+        $('.nav-tabs-examples').find('a:first').tab('show');
+
+        // sample header-content-type switch
+        $('.sample-header-content-type-switch').change(function () {
+            var paramName = '.' + $(this).attr('name') + '-fields';
+            var bodyName = '.' + $(this).attr('name') + '-body';
+            var selectName = 'select[name=' + $(this).attr('name') + ']';
+            if ($(this).val() == 'body-json') {
+                $(selectName).val('undefined');
+                $(this).val('body-json');
+                $(paramName).removeClass('hide');
+                $(this).parent().nextAll(paramName).first().addClass('hide');
+                $(bodyName).addClass('hide');
+                $(this).parent().nextAll(bodyName).first().removeClass('hide');
+            } else if ($(this).val() == "body-form-data") {
+                $(selectName).val('undefined');
+                $(this).val('body-form-data');
+                $(bodyName).addClass('hide');
+                $(paramName).removeClass('hide');
+            } else {
+                $(this).parent().nextAll(paramName).first().removeClass('hide')
+                $(this).parent().nextAll(bodyName).first().addClass('hide');
+            }
+            $(this).prev('.sample-request-switch').prop('checked', true);
+        });
+
+        // sample request switch
+        $('.sample-request-switch').click(function (e) {
+            var paramName = '.' + $(this).attr('name') + '-fields';
+            var bodyName = '.' + $(this).attr('name') + '-body';
+            var select = $(this).next('.' + $(this).attr('name') + '-select').val();
+            if($(this).prop("checked")){
+                if (select == 'body-json'){
+                    $(this).parent().nextAll(bodyName).first().removeClass('hide');
+                }else {
+                    $(this).parent().nextAll(paramName).first().removeClass('hide');
+                }
+            }else {
+                if (select == 'body-json'){
+                    $(this).parent().nextAll(bodyName).first().addClass('hide');
+                }else {
+                    $(this).parent().nextAll(paramName).first().addClass('hide');
+                }
+            }
+        });
+
+        if (apiProject.template.aloneDisplay){
+            //show group
+            $('.show-group').click(function () {
+                var apiGroup = '.' + $(this).attr('data-group') + '-group';
+                var apiGroupArticle = '.' + $(this).attr('data-group') + '-article';
+                $(".show-api-group").addClass('hide');
+                $(apiGroup).removeClass('hide');
+                $(".show-api-article").addClass('hide');
+                $(apiGroupArticle).removeClass('hide');
+            });
+
+            //show api
+            $('.show-api').click(function () {
+                var apiName = '.' + $(this).attr('data-name') + '-article';
+                var apiGroup = '.' + $(this).attr('data-group') + '-group';
+                $(".show-api-group").addClass('hide');
+                $(apiGroup).removeClass('hide');
+                $(".show-api-article").addClass('hide');
+                $(apiName).removeClass('hide');
+            });
+        }
+
+        // call scrollspy refresh method
+        // $(window).scrollspy('refresh');
+
+        // init modules
+        sampleRequest.initDynamic();
+        Prism.highlightAll()
+    }
+    //
+    // HTML-Template specific jQuery-Functions
+    //
+    // Change Main Version
+    function setMainVersion(selectedVersion) {
+        if (typeof(selectedVersion) === 'undefined') {
+            selectedVersion = $('#version strong').html();
+        }
+        else {
+            $('#version strong').html(selectedVersion);
+        }
+
+        // hide all
+        $('article').addClass('hide');
+        $('#sidenav li:not(.nav-fixed)').addClass('hide');
+
+        // show 1st equal or lower Version of each entry
+        $('article[data-version]').each(function(index) {
+            var group = $(this).data('group');
+            var name = $(this).data('name');
+            var version = $(this).data('version');
+
+            if (semver.lte(version, selectedVersion)) {
+                if ($('article[data-group=\'' + group + '\'][data-name=\'' + name + '\']:visible').length === 0) {
+                    // enable Article
+                    $('article[data-group=\'' + group + '\'][data-name=\'' + name + '\'][data-version=\'' + version + '\']').removeClass('hide');
+                    // enable Navigation
+                    $('#sidenav li[data-group=\'' + group + '\'][data-name=\'' + name + '\'][data-version=\'' + version + '\']').removeClass('hide');
+                    $('#sidenav li.nav-header[data-group=\'' + group + '\']').removeClass('hide');
+                }
+            }
+        });
+
+        // show 1st equal or lower Version of each entry
+        $('article[data-version]').each(function(index) {
+            var group = $(this).data('group');
+            $('section#api-' + group).removeClass('hide');
+            if ($('section#api-' + group + ' article:visible').length === 0) {
+                $('section#api-' + group).addClass('hide');
+            } else {
+                $('section#api-' + group).removeClass('hide');
+            }
+        });
+
+        initDynamic();
+        return;
+    }
+    setTimeout(() => {
+
+        // Content-Scroll on Navigation click.
+        $('.sidenav').find('a').on('click', function(e) {
+            // e.preventDefault();
+            // var id = $(this).attr('href');
+            // if ($(id).length > 0)
+            //     $('html,body').animate({ scrollTop: parseInt($(id).offset().top) }, 400);
+            // window.location.hash = $(this).attr('href');
+        });
+
+        initDynamic();
+
+        if (apiProject.template.aloneDisplay) {
+            var hashVal = window.location.hash;
+            if (hashVal != null && hashVal.length !== 0) {
+                $("." + hashVal.slice(1) + "-init").click();
+            }
+        }
+
+        setMainVersion();
+
+        $('#versions li.version a').on('click', function(e) {
+            e.preventDefault();
+
+            setMainVersion($(this).html());
+        });
+
+        // compare all article with their predecessor
+        $('#compareAllWithPredecessor').on('click', changeAllVersionCompareTo);
+
+        // change version of an article
+        $('article .versions li.version a').on('click', changeVersionCompareTo);
+
+        // compare url-parameter
+        $.urlParam = function(name) {
+            var results = new RegExp('[\\?&amp;]' + name + '=([^&amp;#]*)').exec(window.location.href);
+            return (results && results[1]) ? results[1] : null;
+        };
+
+        if ($.urlParam('compare')) {
+            // URL Paramter ?compare=1 is set
+            $('#compareAllWithPredecessor').trigger('click');
+        }
+
+        /**
+         * Initialize search
+         */
+        var options = {
+          valueNames: [ 'nav-list-item','nav-list-url-item']
+        };
+        var endpointsList = new List('scrollingNav', options);
+
+        /**
+         * Set initial focus to search input
+         */
+        $('#scrollingNav .sidenav-search input.search').focus();
+
+        /**
+         * Detect ESC key to reset search
+         */
+        $(document).keyup(function(e) {
+          if (e.keyCode === 27) $('span.search-reset').click();
+        });
+
+        /**
+         * Search reset
+         */
+        $('span.search-reset').on('click', function() {
+          $('#scrollingNav .sidenav-search input.search')
+            .val("")
+            .focus()
+          ;
+          endpointsList.search();
+        });
+
+        Prism.highlightAll()
+    }, 0)
 }

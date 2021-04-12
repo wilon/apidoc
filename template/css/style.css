@@ -6,7 +6,7 @@ body {
 }
 
 body, p, a, div, th, td {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: 400;
   font-size: 16px;
 }
@@ -20,13 +20,6 @@ body, p, a, div, th, td {
   }
 }
 
-td.code {
-  font-size: 14px;
-  font-family: "Source Code Pro", monospace;
-  font-style: normal;
-  font-weight: 400;
-}
-
 #content {
   padding-top: 16px;
   z-Index: -1;
@@ -38,7 +31,7 @@ p {
 }
 
 h1 {
-  font-family: "Source Sans Pro Semibold", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: normal;
   font-size: 44px;
   line-height: 50px;
@@ -47,7 +40,7 @@ h1 {
 }
 
 h2 {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: normal;
   font-size: 24px;
   line-height: 40px;
@@ -61,7 +54,7 @@ section {
 }
 
 section h1 {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: 700;
   font-size: 32px;
   line-height: 40px;
@@ -74,14 +67,14 @@ article {
 }
 
 article h1 {
-  font-family: "Source Sans Pro Bold", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: 600;
   font-size: 24px;
   line-height: 26px;
 }
 
 article h2 {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: 600;
   font-size: 18px;
   line-height: 24px;
@@ -89,7 +82,7 @@ article h2 {
 }
 
 article h3 {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: 600;
   font-size: 16px;
   line-height: 18px;
@@ -97,7 +90,7 @@ article h3 {
 }
 
 article h4 {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: 600;
   font-size: 14px;
   line-height: 16px;
@@ -113,7 +106,7 @@ table {
 th {
   background-color: #f5f5f5;
   text-align: left;
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: 700;
   padding: 4px 8px;
   border: #e0e0e0 1px solid;
@@ -152,7 +145,7 @@ td {
 }
 
 #apidoc h1 {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: 700;
   font-size: 32px;
   line-height: 40px;
@@ -161,7 +154,7 @@ td {
 }
 
 #apidoc h2 {
-  font-family: "Source Sans Pro Bold", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: 600;
   font-size: 22px;
   line-height: 26px;
@@ -172,7 +165,7 @@ td {
  * Request type
  * ------------------------------------------------------------------------------------------ */
 .type {
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: 600;
   font-size: 15px;
   display: inline-block;
@@ -225,7 +218,7 @@ td {
   border: 0;
   border-left: transparent 4px solid;
   border-right: transparent 4px solid;
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: 400;
   font-size: 14px;
 }
@@ -239,7 +232,7 @@ td {
   padding: 5px 15px;
   border: 1px solid #e5e5e5;
   width: 190px;
-  font-family: "Source Sans Pro", sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   font-weight: 700;
   font-size: 16px;
   background-color: #ffffff;
